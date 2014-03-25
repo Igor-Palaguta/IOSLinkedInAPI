@@ -1,4 +1,4 @@
-IOSLinkedInAPI with AFNetworking 1.x
+Reactive IOSLinkedInAPI with AFNetworking 1.x
 ==============
 A small non intrucive library that makes it easy to authenticate and authorize against LinkedIn using OAuth2.
 The API uses a UIWebView to authenticate against LinkedIn.
