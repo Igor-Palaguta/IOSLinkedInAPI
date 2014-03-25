@@ -20,15 +20,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-#import <AFNetworking/AFHTTPRequestOperationManager.h>
+#import <AFNetworking/AFHTTPClient.h>
 
 @class LIALinkedInApplication;
 
-@interface LIALinkedInHttpClient : AFHTTPRequestOperationManager
+typedef void (^LIALinkedInHttpClientDoneBlock)(id responseObject);
+typedef void (^LIALinkedInHttpClientFailureBlock)(NSError* error);
+
+@interface LIALinkedInHttpClient : AFHTTPClient
 
 + (LIALinkedInHttpClient *)clientForApplication:(LIALinkedInApplication *)application;
 
 + (LIALinkedInHttpClient *)clientForApplication:(LIALinkedInApplication *)application presentingViewController:viewController;
+
+- (void)linkedInMethod:(NSString *)method
+                   URL:(NSURL *)url
+               success:(LIALinkedInHttpClientDoneBlock)success
+               failure:(LIALinkedInHttpClientFailureBlock)failure;
+
+- (void)linkedInMethod:(NSString *)method
+                  path:(NSString *)path
+               success:(LIALinkedInHttpClientDoneBlock)success
+               failure:(LIALinkedInHttpClientFailureBlock)failure;
 
 - (BOOL)validToken;
 

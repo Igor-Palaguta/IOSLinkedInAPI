@@ -23,6 +23,8 @@
 #import "LIALinkedInAuthorizationViewController.h"
 #import "NSString+LIAEncode.h"
 
+#import "AFJSONRequestOperation.h"
+
 #define LINKEDIN_TOKEN_KEY          @"linkedin_token"
 #define LINKEDIN_EXPIRATION_KEY     @"linkedin_expiration"
 #define LINKEDIN_CREATION_KEY       @"linkedin_token_created_at"
@@ -45,15 +47,6 @@
   return client;
 }
 
-
-- (id)initWithBaseURL:(NSURL *)url {
-  self = [super initWithBaseURL:url];
-  if (self) {
-    [self setResponseSerializer:[AFJSONResponseSerializer serializer]];
-  }
-  return self;
-}
-
 - (BOOL)validToken {
   NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
 
@@ -69,27 +62,61 @@
   return [[NSUserDefaults standardUserDefaults] objectForKey:LINKEDIN_TOKEN_KEY];
 }
 
+- (void)linkedInMethod:(NSString *)method
+                   URL:(NSURL *)url
+               success:(LIALinkedInHttpClientDoneBlock)success
+               failure:(LIALinkedInHttpClientFailureBlock)failure
+{
+   NSMutableURLRequest* request = [NSMutableURLRequest requestWithURL: url];
+
+   [request setHTTPMethod: method];
+
+   AFJSONRequestOperation *operation = [[AFJSONRequestOperation alloc] initWithRequest: request];
+   [operation setCompletionBlockWithSuccess: ^(AFHTTPRequestOperation *operation, id responseObject)
+    {
+       if (success)
+          success(responseObject);
+    }
+                                    failure:^(AFHTTPRequestOperation *operation, NSError *error) {
+                                       if (failure)
+                                          failure(error);
+                                    }];
+   
+   [self enqueueHTTPRequestOperation: operation];
+}
+
+- (void)linkedInMethod:(NSString *)method
+                  path:(NSString *)path
+               success:(LIALinkedInHttpClientDoneBlock)success
+               failure:(LIALinkedInHttpClientFailureBlock)failure
+{
+   [self linkedInMethod: method
+                    URL: [NSURL URLWithString: path relativeToURL: self.baseURL]
+                success: success
+                failure: failure];
+}
+
 - (void)getAccessToken:(NSString *)authorizationCode success:(void (^)(NSDictionary *))success failure:(void (^)(NSError *))failure {
-  NSString *accessTokenUrl = @"/uas/oauth2/accessToken?grant_type=authorization_code&code=%@&redirect_uri=%@&client_id=%@&client_secret=%@";
-  NSString *url = [NSString stringWithFormat:accessTokenUrl, authorizationCode, [self.application.redirectURL LIAEncode], self.application.clientId, self.application.clientSecret];
+   NSString *accessTokenUrl = @"/uas/oauth2/accessToken?grant_type=authorization_code&code=%@&redirect_uri=%@&client_id=%@&client_secret=%@";
+   NSString *url = [NSString stringWithFormat:accessTokenUrl, authorizationCode, [self.application.redirectURL LIAEncode], self.application.clientId, self.application.clientSecret];
 
-  [self POST:url parameters:nil success:^(AFHTTPRequestOperation *operation, id responseObject) {
-    NSString *accessToken = [responseObject objectForKey:@"access_token"];
-    NSTimeInterval expiration = [[responseObject objectForKey:@"expires_in"] doubleValue];
-
-    // store credentials
-    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
-
-    [userDefaults setObject:accessToken forKey:LINKEDIN_TOKEN_KEY];
-    [userDefaults setDouble:expiration forKey:LINKEDIN_EXPIRATION_KEY];
-    [userDefaults setDouble:[[NSDate date] timeIntervalSince1970] forKey:LINKEDIN_CREATION_KEY];
-    [userDefaults synchronize];
-
-    success(responseObject);
-  }  failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-    failure(error);
-  }];
-
+   [ self linkedInMethod: @"POST"
+                    path: url
+                 success:^(id responseObject) {
+                    NSString *accessToken = [responseObject objectForKey:@"access_token"];
+                    NSTimeInterval expiration = [[responseObject objectForKey:@"expires_in"] doubleValue];
+                    
+                    // store credentials
+                    NSUserDefaults *userDefaults = [NSUserDefaults standardUserDefaults];
+                    
+                    [userDefaults setObject:accessToken forKey:LINKEDIN_TOKEN_KEY];
+                    [userDefaults setDouble:expiration forKey:LINKEDIN_EXPIRATION_KEY];
+                    [userDefaults setDouble:[[NSDate date] timeIntervalSince1970] forKey:LINKEDIN_CREATION_KEY];
+                    [userDefaults synchronize];
+                    
+                    success(responseObject);
+                 }
+                 failure: failure ];
 }
 
 - (void)getAuthorizationCode:(void (^)(NSString *))success cancel:(void (^)(void))cancel failure:(void (^)(NSError *))failure {
