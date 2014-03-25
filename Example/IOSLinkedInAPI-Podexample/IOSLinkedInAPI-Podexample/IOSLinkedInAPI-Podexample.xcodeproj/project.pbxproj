@@ -214,7 +214,7 @@
 				ORGANIZATIONNAME = "Eyben Consult ApS";
 				TargetAttributes = {
 					33AE659B185FA2E400981915 = {
-						TestTargetID = 33AE6577185FA2E400981915 /* IOSLinkedInAPI-Podexample */;
+						TestTargetID = 33AE6577185FA2E400981915;
 					};
 				};
 			};
@@ -229,8 +229,6 @@
 			mainGroup = 33AE656F185FA2E400981915;
 			productRefGroup = 33AE6579185FA2E400981915 /* Products */;
 			projectDirPath = "";
-			projectReferences = (
-			);
 			projectRoot = "";
 			targets = (
 				33AE6577185FA2E400981915 /* IOSLinkedInAPI-Podexample */,
@@ -522,6 +520,7 @@
 				33AE65AF185FA2E500981915 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 		33AE65B0185FA2E500981915 /* Build configuration list for PBXNativeTarget "IOSLinkedInAPI-PodexampleTests" */ = {
 			isa = XCConfigurationList;
@@ -530,6 +529,7 @@
 				33AE65B2185FA2E500981915 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
 	};

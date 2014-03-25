@@ -9,22 +9,35 @@
 #import "LIAViewController.h"
 #import "AFHTTPRequestOperation.h"
 #import "LIALinkedInHttpClient.h"
-#import "LIALinkedInClientExampleCredentials.h"
 #import "LIALinkedInApplication.h"
+
+static NSString* const LINKEDIN_CLIENT_ID = nil;//Your client id
+static NSString* const LINKEDIN_CLIENT_SECRET = nil;//Your client secret
 
 @interface LIAViewController ()
 
+@property (nonatomic, strong) LIALinkedInHttpClient* client;
+
 @end
 
-@implementation LIAViewController {
-  LIALinkedInHttpClient *_client;
-}
+@implementation LIAViewController
 
-- (void)viewDidLoad {
-  [super viewDidLoad];
-  _client = [self client];
-}
+@synthesize client = _client;
 
+- (LIALinkedInHttpClient *)client {
+   if ( !_client )
+   {
+      NSParameterAssert(LINKEDIN_CLIENT_ID);
+      NSParameterAssert(LINKEDIN_CLIENT_SECRET);
+      LIALinkedInApplication *application = [LIALinkedInApplication applicationWithRedirectURL:@"http://www.ancientprogramming.com/liaexample"
+                                                                                      clientId:LINKEDIN_CLIENT_ID
+                                                                                  clientSecret:LINKEDIN_CLIENT_SECRET
+                                                                                         state:@"DCEEFWF45453sdffef424"
+                                                                                 grantedAccess:@[@"r_fullprofile", @"r_network"]];
+      _client = [LIALinkedInHttpClient clientForApplication:application presentingViewController:nil];
+   }
+   return _client;
+}
 
 - (IBAction)didTapConnectWithLinkedIn:(id)sender {
   [self.client getAuthorizationCode:^(NSString *code) {
@@ -41,22 +54,17 @@
   }];
 }
 
-
 - (void)requestMeWithToken:(NSString *)accessToken {
-  [self.client GET:[NSString stringWithFormat:@"https://api.linkedin.com/v1/people/~?oauth2_access_token=%@&format=json", accessToken] parameters:nil success:^(AFHTTPRequestOperation *operation, NSDictionary *result) {
-    NSLog(@"current user %@", result);
-  }        failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-    NSLog(@"failed to fetch current user %@", error);
-  }];
-}
-
-- (LIALinkedInHttpClient *)client {
-  LIALinkedInApplication *application = [LIALinkedInApplication applicationWithRedirectURL:@"http://www.ancientprogramming.com/liaexample"
-                                                                                  clientId:LINKEDIN_CLIENT_ID
-                                                                              clientSecret:LINKEDIN_CLIENT_SECRET
-                                                                                     state:@"DCEEFWF45453sdffef424"
-                                                                             grantedAccess:@[@"r_fullprofile", @"r_network"]];
-  return [LIALinkedInHttpClient clientForApplication:application presentingViewController:nil];
+   [self.client linkedInMethod: @"GET"
+                           URL: [NSURL URLWithString: [ NSString stringWithFormat:@"https://api.linkedin.com/v1/people/~?oauth2_access_token=%@&format=json", accessToken]]
+                       success: ^(NSDictionary* user)
+    {
+       NSLog(@"current user %@", user);
+    }
+                       failure: ^(NSError* error)
+    {
+       NSLog(@"error %@", error);
+    }];
 }
 
 @end
