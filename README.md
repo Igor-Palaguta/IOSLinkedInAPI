@@ -46,26 +46,22 @@ return [LIALinkedInHttpClient clientForApplication:application presentingViewCon
 Afterwards the client can be used to retrieve an accesstoken and access the data using the LinkedIn API:
 ``` objective-c
 - (IBAction)didTapConnectWithLinkedIn:(id)sender {
-  [self.client getAuthorizationCode:^(NSString *code) {
-    [self.client getAccessToken:code success:^(NSDictionary *accessTokenData) {
-      NSString *accessToken = [accessTokenData objectForKey:@"access_token"];
-      [self requestMeWithToken:accessToken];
-    }                   failure:^(NSError *error) {
-      NSLog(@"Quering accessToken failed %@", error);
+   [ [ [ self.engine accessToken ] flattenMap:
+      ^( NSString* access_token_ )
+      {
+         return [ self.engine signalWithMethod: @"GET"
+                                          path: [ NSString stringWithFormat: @"https://api.linkedin.com/v1/people/~?oauth2_access_token=%@&format=json", access_token_ ] ];
+      } ]
+    subscribeNext:
+    ^( id user_ )
+    {
+       NSLog(@"result: %@", user_);
+    }
+    error:
+    ^( NSError* error_ )
+    {
+       NSLog(@"error: %@", error_ );
     }];
-  }                      cancel:^{
-    NSLog(@"Authorization was cancelled by user");
-  }                     failure:^(NSError *error) {
-    NSLog(@"Authorization failed %@", error);
-  }];
-}
-
-- (void)requestMeWithToken:(NSString *)accessToken {
-  [self.client GET:[NSString stringWithFormat:@"https://api.linkedin.com/v1/people/~?oauth2_access_token=%@&format=json", accessToken] parameters:nil success:^(AFHTTPRequestOperation *operation, NSDictionary *result) {
-    NSLog(@"current user %@", result);
-  }        failure:^(AFHTTPRequestOperation *operation, NSError *error) {
-    NSLog(@"failed to fetch current user %@", error);
-  }];
 }
 ```
 The code example retrieves an access token and uses it to get userdata for the user which granted the access.
