@@ -21,6 +21,8 @@ How To Get Started
 ------------------
 The library can be fetched as a Pod from [cocoapods](http://cocoapods.org/?q=ioslinkedinapi)
 
+pod 'IOSLinkedInAPI', :git => 'https://github.com/Igor-Palaguta/IOSLinkedInAPI.git', :branch => 'ReactiveCocoa'
+
 If you aren't using Cocoapods you can always download the libary and import the files from the folder IOSLinkedInAPI into your existing project.
 
 Example Code
