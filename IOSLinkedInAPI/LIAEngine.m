@@ -187,3 +187,18 @@ static NSString* const LIAEngineAccessExpiresInKey = @"LIAEngineAccessExpiresInK
 }
 
 @end
+
+@implementation LIAEngine (LIARequests)
+
+-(RACSignal*)userPorfileWithAccessToken:( NSString* )access_token_
+                                 fields:( NSArray* )fields_
+{
+   NSString* fields_selector_ = [ fields_ count ] > 0
+      ? [ NSString stringWithFormat: @":(%@)", [ fields_ componentsJoinedByString: @"," ] ]
+      : @"";
+
+   return [ self signalWithMethod: @"GET"
+                             path: [ NSString stringWithFormat: @"https://api.linkedin.com/v1/people/~%@?oauth2_access_token=%@&format=json", fields_selector_, access_token_ ] ];
+}
+
+@end

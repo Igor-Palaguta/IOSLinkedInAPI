@@ -23,3 +23,10 @@
                           URL:( NSURL* )url_;
 
 @end
+
+@interface LIAEngine (LIARequests)
+
+-(RACSignal*)userPorfileWithAccessToken:( NSString* )access_token_
+                                 fields:( NSArray* )fields_;
+
+@end
