@@ -158,7 +158,8 @@ static NSString* const LIAEngineAccessExpiresInKey = @"LIAEngineAccessExpiresInK
                  }];
 
                 UINavigationController* navigation_controller_ = [ [ UINavigationController alloc ] initWithRootViewController: controller_ ];
-                
+                navigation_controller_.navigationBar.translucent = NO;
+
                 if ( [ [ UIDevice currentDevice ] userInterfaceIdiom ] == UIUserInterfaceIdiomPad )
                 {
                    navigation_controller_.modalPresentationStyle = UIModalPresentationFormSheet;

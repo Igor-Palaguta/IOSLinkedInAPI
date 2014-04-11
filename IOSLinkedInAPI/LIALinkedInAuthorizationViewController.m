@@ -22,17 +22,19 @@
 #import "LIALinkedInAuthorizationViewController.h"
 #import "NSString+LIAEncode.h"
 
-#define SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(v)  ([[[UIDevice currentDevice] systemVersion] compare:v options:NSNumericSearch] != NSOrderedAscending)
-
 NSString *kLinkedInErrorDomain = @"LIALinkedInERROR";
 NSString *kLinkedInDeniedByUser = @"the+user+denied+your+request";
 
 @interface LIALinkedInAuthorizationViewController ()
-@property(nonatomic, strong) UIWebView *authenticationWebView;
-@property(nonatomic, copy) LIAAuthorizationCodeFailureCallback failureCallback;
-@property(nonatomic, copy) LIAAuthorizationCodeSuccessCallback successCallback;
-@property(nonatomic, copy) LIAAuthorizationCodeCancelCallback cancelCallback;
-@property(nonatomic, strong) LIALinkedInApplication *application;
+
+@property ( nonatomic, strong ) UIWebView* authenticationWebView;
+@property ( nonatomic, strong ) UIActivityIndicatorView* activityView;
+@property ( nonatomic, copy ) LIAAuthorizationCodeFailureCallback failureCallback;
+@property ( nonatomic, copy ) LIAAuthorizationCodeSuccessCallback successCallback;
+@property ( nonatomic, copy ) LIAAuthorizationCodeCancelCallback cancelCallback;
+@property ( nonatomic, strong ) LIALinkedInApplication* application;
+@property ( nonatomic, assign ) BOOL handlingRedirectURL;
+
 @end
 
 @interface LIALinkedInAuthorizationViewController (UIWebViewDelegate) <UIWebViewDelegate>
@@ -41,7 +43,11 @@ NSString *kLinkedInDeniedByUser = @"the+user+denied+your+request";
 
 @implementation LIALinkedInAuthorizationViewController
 
-BOOL handlingRedirectURL;
+-(void)dealloc
+{
+   _authenticationWebView.delegate = nil;
+   [ _authenticationWebView stopLoading ];
+}
 
 - (id)initWithApplication:(LIALinkedInApplication *)application success:(LIAAuthorizationCodeSuccessCallback)success cancel:(LIAAuthorizationCodeCancelCallback)cancel failure:(LIAAuthorizationCodeFailureCallback)failure {
     self = [super init];
@@ -54,37 +60,62 @@ BOOL handlingRedirectURL;
     return self;
 }
 
-- (void)viewDidLoad {
-    [super viewDidLoad];
-    
-	if(SYSTEM_VERSION_GREATER_THAN_OR_EQUAL_TO(@"7")) {
-		
+-(UIWebView*)authenticationWebView
+{
+   if ( !_authenticationWebView )
+   {
+      _authenticationWebView = [ [ UIWebView alloc ] initWithFrame: self.view.bounds ];
+      _authenticationWebView.delegate = self;
+      _authenticationWebView.scalesPageToFit = YES;
+      _authenticationWebView.autoresizingMask = UIViewAutoresizingFlexibleWidth | UIViewAutoresizingFlexibleHeight;
+   }
+
+   return _authenticationWebView;
+}
+
+-(UIActivityIndicatorView*)activityView
+{
+   if ( !_activityView )
+   {
+      _activityView = [ [ UIActivityIndicatorView alloc ] initWithActivityIndicatorStyle: UIActivityIndicatorViewStyleWhite ];
+      _activityView.hidesWhenStopped = YES;
+   }
+   return _activityView;
+}
+
+-(void)viewDidLoad
+{
+   [ super viewDidLoad ];
+
+	if( [ self respondsToSelector: @selector(setEdgesForExtendedLayout:) ] )
+   {
 		self.edgesForExtendedLayout = UIRectEdgeNone;
 	}
 
-	UIBarButtonItem *cancelButton = [[UIBarButtonItem alloc] initWithBarButtonSystemItem:UIBarButtonSystemItemCancel target:self action:@selector(tappedCancelButton:)];
-	self.navigationItem.leftBarButtonItem = cancelButton;
+	self.navigationItem.leftBarButtonItem =
+   [ [ UIBarButtonItem alloc ] initWithBarButtonSystemItem: UIBarButtonSystemItemCancel
+                                                    target: self
+                                                    action: @selector(tappedCancelButton:) ];
 
-  self.authenticationWebView = [[UIWebView alloc] init];
-  self.authenticationWebView.delegate = self;
-  self.authenticationWebView.scalesPageToFit = YES;
-  [self.view addSubview:self.authenticationWebView];
+   self.navigationItem.rightBarButtonItem = [ [ UIBarButtonItem alloc ] initWithCustomView: self.activityView ];
+
+   [ self.view addSubview: self.authenticationWebView ];
 }
 
-- (void)viewDidAppear:(BOOL)animated {
-    NSString *linkedIn = [NSString stringWithFormat:@"https://www.linkedin.com/uas/oauth2/authorization?response_type=code&client_id=%@&scope=%@&state=%@&redirect_uri=%@", self.application.clientId, self.application.grantedAccessString, self.application.state, [self.application.redirectURL LIAEncode]];
-    [self.authenticationWebView loadRequest:[NSURLRequest requestWithURL:[NSURL URLWithString:linkedIn]]];
-}
+-(void)viewDidAppear:( BOOL )animated_
+{
+   [ super viewDidAppear: animated_ ];
 
-- (void)viewWillLayoutSubviews {
-  [super viewWillLayoutSubviews];
-  self.authenticationWebView.frame = self.view.bounds;
+   [ self.activityView startAnimating ];
+   
+   NSString *linkedIn = [NSString stringWithFormat:@"https://www.linkedin.com/uas/oauth2/authorization?response_type=code&client_id=%@&scope=%@&state=%@&redirect_uri=%@", self.application.clientId, self.application.grantedAccessString, self.application.state, [self.application.redirectURL LIAEncode]];
+   [ self.authenticationWebView loadRequest: [ NSURLRequest requestWithURL: [ NSURL URLWithString:linkedIn ] ] ];
 }
-
 
 #pragma mark UI Action Methods
 
-- (void)tappedCancelButton:(id)sender {
+-(void)tappedCancelButton:(id)sender
+{
   self.cancelCallback();
 }
 
@@ -96,9 +127,9 @@ BOOL handlingRedirectURL;
     NSString *url = [[request URL] absoluteString];
 
     //prevent loading URL if it is the redirectURL
-    handlingRedirectURL = [url hasPrefix:self.application.redirectURL];
+    self.handlingRedirectURL = [url hasPrefix:self.application.redirectURL];
 
-    if (handlingRedirectURL) {
+    if (self.handlingRedirectURL) {
         if ([url rangeOfString:@"error"].location != NSNotFound) {
             BOOL accessDenied = [url rangeOfString:kLinkedInDeniedByUser].location != NSNotFound;
             if (accessDenied) {
@@ -120,7 +151,7 @@ BOOL handlingRedirectURL;
             }
         }
     }
-    return !handlingRedirectURL;
+    return !self.handlingRedirectURL;
 }
 
 - (NSString *)extractGetParameter: (NSString *) parameterName fromURLString:(NSString *)urlString {
@@ -135,27 +166,35 @@ BOOL handlingRedirectURL;
     return [mdQueryStrings objectForKey:parameterName];
 }
 
-- (void)webView:(UIWebView *)webView didFailLoadWithError:(NSError *)error {
-    if (!handlingRedirectURL)
-        self.failureCallback(error);
+-(void)webView:( UIWebView* )web_view_
+didFailLoadWithError:( NSError* )error_
+{
+	[ self.activityView stopAnimating ];
+
+   if (!self.handlingRedirectURL)
+   {
+      self.failureCallback(error_);
+   }
 }
 
-- (void)webViewDidFinishLoad:(UIWebView *)webView {
-	
-	
+-(void)webViewDidFinishLoad:( UIWebView* )web_view_
+{
+	[ self.activityView stopAnimating ];
+   
 	/*fix for the LinkedIn Auth window - it doesn't scale right when placed into
 	 a webview inside of a form sheet modal. If we transform the HTML of the page
 	 a bit, and fix the viewport to 540px (the width of the form sheet), the problem
 	 is solved.
-	*/
-	if([[UIDevice currentDevice] userInterfaceIdiom] == UIUserInterfaceIdiomPad) {
-		NSString* js =
+    */
+	if( [ [ UIDevice currentDevice ] userInterfaceIdiom ] == UIUserInterfaceIdiomPad )
+   {
+		NSString* js_ =
 		@"var meta = document.createElement('meta'); "
 		@"meta.setAttribute( 'name', 'viewport' ); "
 		@"meta.setAttribute( 'content', 'width = 540px, initial-scale = 1.0, user-scalable = yes' ); "
 		@"document.getElementsByTagName('head')[0].appendChild(meta)";
 		
-		[webView stringByEvaluatingJavaScriptFromString: js];
+		[ web_view_ stringByEvaluatingJavaScriptFromString: js_ ];
 	}
 }
 
