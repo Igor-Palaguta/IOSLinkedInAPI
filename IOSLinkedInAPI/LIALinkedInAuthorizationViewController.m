@@ -22,8 +22,8 @@
 #import "LIALinkedInAuthorizationViewController.h"
 #import "NSString+LIAEncode.h"
 
-NSString *kLinkedInErrorDomain = @"LIALinkedInERROR";
-NSString *kLinkedInDeniedByUser = @"the+user+denied+your+request";
+static NSString* const kLinkedInErrorDomain = @"LIALinkedInERROR";
+static NSString* const kLinkedInDeniedByUser = @"the+user+denied+your+request";
 
 @interface LIALinkedInAuthorizationViewController ()
 
